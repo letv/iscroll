@@ -14,6 +14,8 @@
 			return;
 		}
 
+		e.preventDefault();
+
 		var wheelDeltaX, wheelDeltaY,
 			newX, newY,
 			that = this;
@@ -23,8 +25,6 @@
 		this.wheelTimeout = setTimeout(function () {
 			that._execEvent('scrollEnd');
 		}, 400);
-
-		e.preventDefault();
 
 		if ( 'wheelDeltaX' in e ) {
 			wheelDeltaX = e.wheelDeltaX / 120;
@@ -42,10 +42,32 @@
 
 		if ( !this.hasVerticalScroll ) {
 			wheelDeltaX = wheelDeltaY;
+			wheelDeltaY = 0;
 		}
 
-		newX = this.x + (this.hasHorizontalScroll ? wheelDeltaX * this.options.invertWheelDirection : 0);
-		newY = this.y + (this.hasVerticalScroll ? wheelDeltaY * this.options.invertWheelDirection : 0);
+		if ( this.options.snap ) {
+			newX = this.currentPage.pageX;
+			newY = this.currentPage.pageY;
+
+			if ( wheelDeltaX > 0 ) {
+				newX--;
+			} else if ( wheelDeltaX < 0 ) {
+				newX++;
+			}
+
+			if ( wheelDeltaY > 0 ) {
+				newY--;
+			} else if ( wheelDeltaY < 0 ) {
+				newY++;
+			}
+
+			this.goToPage(newX, newY);
+
+			return;
+		}
+
+		newX = this.x + Math.round(this.hasHorizontalScroll ? wheelDeltaX * this.options.invertWheelDirection : 0);
+		newY = this.y + Math.round(this.hasVerticalScroll ? wheelDeltaY * this.options.invertWheelDirection : 0);
 
 		if ( newX > 0 ) {
 			newX = 0;

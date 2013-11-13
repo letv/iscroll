@@ -19,6 +19,7 @@ function IScroll (el, options) {
 		bounceEasing: '',
 
 		preventDefault: true,
+		preventDefaultException: { tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/ },
 
 		HWCompositing: true,
 		useTransition: true,
@@ -111,7 +112,7 @@ IScroll.prototype = {
 			return;
 		}
 
-		if ( this.options.preventDefault && !utils.isAndroidBrowser ) {
+		if ( this.options.preventDefault && !utils.isAndroidBrowser && !utils.preventDefaultException(e.target, this.options.preventDefaultException) ) {
 			e.preventDefault();		// This seems to break default Android browser
 		}
 
@@ -135,6 +136,7 @@ IScroll.prototype = {
 			pos = this.getComputedPosition();
 
 			this._translate(Math.round(pos.x), Math.round(pos.y));
+			this._execEvent('scrollEnd');
 			this.isInTransition = false;
 		}
 
@@ -145,7 +147,7 @@ IScroll.prototype = {
 		this.pointX    = point.pageX;
 		this.pointY    = point.pageY;
 
-		this._execEvent('scrollStart');
+		this._execEvent('beforeScrollStart');
 	},
 
 	_move: function (e) {
@@ -158,8 +160,8 @@ IScroll.prototype = {
 		}
 
 		var point		= e.touches ? e.touches[0] : e,
-			deltaX		= this.hasHorizontalScroll ? point.pageX - this.pointX : 0,
-			deltaY		= this.hasVerticalScroll   ? point.pageY - this.pointY : 0,
+			deltaX		= point.pageX - this.pointX,
+			deltaY		= point.pageY - this.pointY,
 			timestamp	= utils.getTime(),
 			newX, newY,
 			absDistX, absDistY;
@@ -208,6 +210,9 @@ IScroll.prototype = {
 			deltaX = 0;
 		}
 
+		deltaX = this.hasHorizontalScroll ? deltaX : 0;
+		deltaY = this.hasVerticalScroll ? deltaY : 0;
+
 		newX = this.x + deltaX;
 		newY = this.y + deltaY;
 
@@ -221,6 +226,10 @@ IScroll.prototype = {
 
 		this.directionX = deltaX > 0 ? -1 : deltaX < 0 ? 1 : 0;
 		this.directionY = deltaY > 0 ? -1 : deltaY < 0 ? 1 : 0;
+
+		if ( !this.moved ) {
+			this._execEvent('scrollStart');
+		}
 
 		this.moved = true;
 
@@ -243,8 +252,8 @@ IScroll.prototype = {
 			return;
 		}
 
-		if ( this.options.preventDefault ) {
-			e.preventDefault();		// TODO: check if needed
+		if ( this.options.preventDefault && !utils.preventDefaultException(e.target, this.options.preventDefaultException) ) {
+			e.preventDefault();
 		}
 
 		var point = e.changedTouches ? e.changedTouches[0] : e,
@@ -297,21 +306,7 @@ IScroll.prototype = {
 			this.isInTransition = 1;
 		}
 
-		if ( this.options.snap ) {
-			var snap = this._nearestSnap(newX, newY);
-			this.currentPage = snap;
-			newX = snap.x;
-			newY = snap.y;
-			time = this.options.snapSpeed || Math.max(
-					Math.max(
-						Math.min(distanceX, 1000),
-						Math.min(distanceX, 1000)
-					), 300);
-
-			this.directionX = 0;
-			this.directionY = 0;
-			easing = this.options.bounceEasing;
-		}
+// INSERT POINT: _end
 
 		if ( newX != this.x || newY != this.y ) {
 			// change easing function when scroller goes out of the boundaries
@@ -410,15 +405,8 @@ IScroll.prototype = {
 
 		this.resetPosition();
 
-		if ( this.options.snap ) {
-			var snap = this._nearestSnap(this.x, this.y);
-			if ( this.x == snap.x && this.y == snap.y ) {
-				return;
-			}
+// INSERT POINT: _refresh
 
-			this.currentPage = snap;
-			this.scrollTo(snap.x, snap.y);
-		}
 	},
 
 	on: function (type, fn) {
@@ -492,7 +480,7 @@ IScroll.prototype = {
 		pos.left = pos.left > 0 ? 0 : pos.left < this.maxScrollX ? this.maxScrollX : pos.left;
 		pos.top  = pos.top  > 0 ? 0 : pos.top  < this.maxScrollY ? this.maxScrollY : pos.top;
 
-		time = time === undefined || time === null || time === 'auto' ? Math.max(Math.abs(pos.left)*2, Math.abs(pos.top)*2) : time;
+		time = time === undefined || time === null || time === 'auto' ? Math.max(Math.abs(this.x-pos.left), Math.abs(this.y-pos.top)) : time;
 
 		this.scrollTo(pos.left, pos.top, time, easing);
 	},
@@ -542,19 +530,25 @@ IScroll.prototype = {
 		eventType(window, 'orientationchange', this);
 		eventType(window, 'resize', this);
 
-		eventType(this.wrapper, 'mousedown', this);
-		eventType(target, 'mousemove', this);
-		eventType(target, 'mousecancel', this);
-		eventType(target, 'mouseup', this);
+		if ( this.options.click ) {
+			eventType(this.wrapper, 'click', this, true);
+		}
 
-		if ( utils.hasPointer ) {
+		if ( !this.options.disableMouse ) {
+			eventType(this.wrapper, 'mousedown', this);
+			eventType(target, 'mousemove', this);
+			eventType(target, 'mousecancel', this);
+			eventType(target, 'mouseup', this);
+		}
+
+		if ( utils.hasPointer && !this.options.disablePointer ) {
 			eventType(this.wrapper, 'MSPointerDown', this);
 			eventType(target, 'MSPointerMove', this);
 			eventType(target, 'MSPointerCancel', this);
 			eventType(target, 'MSPointerUp', this);
 		}
 
-		if ( utils.hasTouch ) {
+		if ( utils.hasTouch && !this.options.disableTouch ) {
 			eventType(this.wrapper, 'touchstart', this);
 			eventType(target, 'touchmove', this);
 			eventType(target, 'touchcancel', this);

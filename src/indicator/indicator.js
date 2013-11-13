@@ -59,13 +59,18 @@ function Indicator (scroller, options) {
 	this.maxPosY = 0;
 
 	if ( this.options.interactive ) {
-		utils.addEvent(this.indicator, 'touchstart', this);
-		utils.addEvent(this.indicator, 'MSPointerDown', this);
-		utils.addEvent(this.indicator, 'mousedown', this);
-
-		utils.addEvent(window, 'touchend', this);
-		utils.addEvent(window, 'MSPointerUp', this);
-		utils.addEvent(window, 'mouseup', this);
+		if ( !this.options.disableTouch ) {
+			utils.addEvent(this.indicator, 'touchstart', this);
+			utils.addEvent(window, 'touchend', this);
+		}
+		if ( !this.options.disablePointer ) {
+			utils.addEvent(this.indicator, 'MSPointerDown', this);
+			utils.addEvent(window, 'MSPointerUp', this);
+		}
+		if ( !this.options.disableMouse ) {
+			utils.addEvent(this.indicator, 'mousedown', this);
+			utils.addEvent(window, 'mouseup', this);
+		}
 	}
 }
 
@@ -128,11 +133,17 @@ Indicator.prototype = {
 
 		this.startTime	= utils.getTime();
 
-		utils.addEvent(window, 'touchmove', this);
-		utils.addEvent(window, 'MSPointerMove', this);
-		utils.addEvent(window, 'mousemove', this);
+		if ( !this.options.disableTouch ) {
+			utils.addEvent(window, 'touchmove', this);
+		}
+		if ( !this.options.disablePointer ) {
+			utils.addEvent(window, 'MSPointerMove', this);
+		}
+		if ( !this.options.disableMouse ) {
+			utils.addEvent(window, 'mousemove', this);
+		}
 
-		this.scroller._execEvent('scrollStart');
+		this.scroller._execEvent('beforeScrollStart');
 	},
 
 	_move: function (e) {
@@ -140,6 +151,10 @@ Indicator.prototype = {
 			deltaX, deltaY,
 			newX, newY,
 			timestamp = utils.getTime();
+
+		if ( !this.moved ) {
+			this.scroller._execEvent('scrollStart');
+		}
 
 		this.moved = true;
 
@@ -171,6 +186,23 @@ Indicator.prototype = {
 		utils.removeEvent(window, 'touchmove', this);
 		utils.removeEvent(window, 'MSPointerMove', this);
 		utils.removeEvent(window, 'mousemove', this);
+
+		if ( this.scroller.options.snap ) {
+			var snap = this.scroller._nearestSnap(this.scroller.x, this.scroller.y);
+
+			var time = this.options.snapSpeed || Math.max(
+					Math.max(
+						Math.min(Math.abs(this.scroller.x - snap.x), 1000),
+						Math.min(Math.abs(this.scroller.y - snap.y), 1000)
+					), 300);
+
+			if ( this.scroller.x != snap.x || this.scroller.y != snap.y ) {
+				this.scroller.directionX = 0;
+				this.scroller.directionY = 0;
+				this.scroller.currentPage = snap;
+				this.scroller.scrollTo(snap.x, snap.y, time, this.scroller.options.bounceEasing);
+			}
+		}
 
 		if ( this.moved ) {
 			this.scroller._execEvent('scrollEnd');
@@ -226,7 +258,7 @@ Indicator.prototype = {
 		if ( this.options.listenX ) {
 			this.wrapperWidth = this.wrapper.clientWidth;
 			if ( this.options.resize ) {
-				this.indicatorWidth = Math.max(Math.round(this.wrapperWidth * this.wrapperWidth / this.scroller.scrollerWidth), 8);
+				this.indicatorWidth = Math.max(Math.round(this.wrapperWidth * this.wrapperWidth / (this.scroller.scrollerWidth || this.wrapperWidth || 1)), 8);
 				this.indicatorStyle.width = this.indicatorWidth + 'px';
 			} else {
 				this.indicatorWidth = this.indicator.clientWidth;
@@ -238,7 +270,7 @@ Indicator.prototype = {
 		if ( this.options.listenY ) {
 			this.wrapperHeight = this.wrapper.clientHeight;
 			if ( this.options.resize ) {
-				this.indicatorHeight = Math.max(Math.round(this.wrapperHeight * this.wrapperHeight / this.scroller.scrollerHeight), 8);
+				this.indicatorHeight = Math.max(Math.round(this.wrapperHeight * this.wrapperHeight / (this.scroller.scrollerHeight || this.wrapperHeight || 1)), 8);
 				this.indicatorStyle.height = this.indicatorHeight + 'px';
 			} else {
 				this.indicatorHeight = this.indicator.clientHeight;

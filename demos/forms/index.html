@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
 
-<title>iScroll demo: click</title>
+<title>iScroll demo: simple</title>
 
 <script type="text/javascript" src="../../build/iscroll.js"></script>
 
@@ -13,7 +13,7 @@
 var myScroll;
 
 function loaded () {
-	myScroll = new IScroll('#wrapper', { mouseWheel: true, click: true });
+	myScroll = new IScroll('#wrapper', { mouseWheel: true });
 }
 
 document.addEventListener('touchmove', function (e) { e.preventDefault(); }, false);
@@ -134,23 +134,23 @@ body {
 			<li>Pretty row 2</li>
 			<li>Pretty row 3</li>
 			<li>Pretty row 4</li>
-			<li>Pretty row 5</li>
-			<li id="me"><a href="#" onclick="console.log(this.parentNode.style.backgroundColor);this.parentNode.style.backgroundColor=this.parentNode.style.backgroundColor==''?'#a00':'';return false">Click me!</a></li>
+			<li><input type="text"></li>
+			<li>Pretty row 6</li>
 			<li>Pretty row 7</li>
 			<li>Pretty row 8</li>
-			<li>Pretty row 9</li>
+			<li><input type="checkbox"></li>
 			<li>Pretty row 10</li>
 			<li>Pretty row 11</li>
 			<li>Pretty row 12</li>
-			<li>Pretty row 13</li>
+			<li><input type="radio"></li>
 			<li>Pretty row 14</li>
 			<li>Pretty row 15</li>
 			<li>Pretty row 16</li>
-			<li>Pretty row 17</li>
+			<li><textarea></textarea></li>
 			<li>Pretty row 18</li>
 			<li>Pretty row 19</li>
 			<li>Pretty row 20</li>
-			<li>Pretty row 21</li>
+			<li><select><option>option</option></select></li>
 			<li>Pretty row 22</li>
 			<li>Pretty row 23</li>
 			<li>Pretty row 24</li>
